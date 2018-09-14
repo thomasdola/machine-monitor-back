@@ -40,7 +40,13 @@ defmodule MachineMonitor.Mixfile do
       {:phoenix_html, "~> 2.10"},
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:gettext, "~> 0.11"},
-      {:cowboy, "~> 1.0"}
+      {:comeonin, "~> 4.0"},
+      {:bcrypt_elixir, "~> 0.12"},
+      {:nanoid, "~> 1.0"},
+      {:guardian, "~> 1.0"},
+      {:remodel, "~> 0.0.4"},
+      {:cowboy, "~> 1.0"},
+      {:ex_unit_notifier, "~> 0.1.4", only: :test}
     ]
   end
 
@@ -54,7 +60,7 @@ defmodule MachineMonitor.Mixfile do
     [
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      "test": ["ecto.create --quiet", "ecto.migrate", "test"]
+      test: ["ecto.create --quiet", "ecto.migrate", "test"]
     ]
   end
 end

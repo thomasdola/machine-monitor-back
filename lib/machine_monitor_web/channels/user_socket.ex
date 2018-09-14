@@ -2,7 +2,8 @@ defmodule MachineMonitorWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", MachineMonitorWeb.RoomChannel
+   channel "MACHINE:*", MachineMonitorWeb.MachineChannel
+   channel "USER:*", MachineMonitorWeb.UserChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket
@@ -19,8 +20,16 @@ defmodule MachineMonitorWeb.UserSocket do
   #
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
+  def connect(%{"token" => token}, socket) do
+    case Guardian.Phoenix.Socket.authenticate(socket, MachineMonitorWeb.Auth.Guardian, token) do
+      {:ok, socket} -> {:ok, socket}
+      {:error, _} -> :error
+    end
+  end
+
+  # This function will be called when there was no authentication information
   def connect(_params, socket) do
-    {:ok, socket}
+    :error
   end
 
   # Socket id's are topics that allow you to identify all sockets for a given user:
