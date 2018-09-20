@@ -1,5 +1,6 @@
 defmodule MachineMonitorWeb.Serializers.Machine do
   use Remodel
+  use Phoenix.HTML
 
   attributes [:id, :name, :power, :network, :applications, :services, :uuid]
 
@@ -10,7 +11,13 @@ defmodule MachineMonitorWeb.Serializers.Machine do
   def network(%{monitor: nil}), do: []
   def network(%{monitor: %{network: nil}}), do: []
   def network(%{monitor: %{network: network}}) do
-    Enum.map(network, fn %{key: k, value: v} -> %{name: k, value: v} end)
+    Enum.map(network, fn adapter ->  
+      keys = Map.keys adapter
+      Enum.map(keys, fn key ->  
+        value = Map.get(adapter, key)
+        %{name: humanize(key), value: value}
+      end) |> Enum.reject(fn %{name: name} -> String.downcase(name) == "address" end)
+    end)
   end
 
   def applications(%{monitor: nil}), do: []

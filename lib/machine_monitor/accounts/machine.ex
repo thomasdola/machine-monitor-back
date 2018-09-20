@@ -25,6 +25,7 @@ defmodule MachineMonitor.Accounts.Machine do
     |> unique_constraint(:name)
   end
 
+  def hasher() do
     case :os.type() do
       {:unix, :linux} -> Bcrypt
       _ -> Pbkdf2

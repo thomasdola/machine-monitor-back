@@ -5,7 +5,7 @@ defmodule MachineMonitor.Machine.Monitor do
 
   schema "monitors" do
     field :applications, {:array, :map}
-    field :network, {:array, :map}
+    field :network, {:array, :map}, default: []
     field :services, {:array, :map}
     field :status, :integer
     field :machine_id, :id

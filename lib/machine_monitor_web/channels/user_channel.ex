@@ -13,6 +13,12 @@ defmodule MachineMonitorWeb.UserChannel do
     end
   end
 
+  def handle_in("SYSTEM_STATUS" = event, %{"machine" => name} = params, socket) do
+    %Accounts.Machine{uuid: uuid} = Accounts.get_machine_by(:name, name)
+    MachineMonitorWeb.Endpoint.broadcast("MACHINE:#{uuid}", event, params)
+    {:reply, :ok, socket}
+  end
+
   def handle_in("CHANGE_PASSWORD" = event, %{"machine" => name} = params, socket) do
     %Accounts.Machine{uuid: uuid} = Accounts.get_machine_by(:name, name)
     MachineMonitorWeb.Endpoint.broadcast("MACHINE:#{uuid}", event, params)

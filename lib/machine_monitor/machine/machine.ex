@@ -363,9 +363,9 @@ defmodule MachineMonitor.Machine do
 
   def update_machine_monitor(machine, update) do
     with %{monitor: %Monitor{} = monitor} <- Repo.preload(machine, [:monitor]),
-         {:ok, _} <- update_monitor(monitor, update)
+         {:ok, monitor} <- update_monitor(monitor, update)
     do
-        {:ok, machine}
+        {:ok, machine, monitor}
     else
         %{monitor: nil} -> {:error, :no_monitor}
         error -> error
