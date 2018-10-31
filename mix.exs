@@ -20,7 +20,7 @@ defmodule MachineMonitor.Mixfile do
   def application do
     [
       mod: {MachineMonitor.Application, []},
-      extra_applications: [:logger, :runtime_tools, :erlsom]
+      extra_applications: [:logger, :runtime_tools, :xlsxir, :erlsom]
     ]
   end
 
