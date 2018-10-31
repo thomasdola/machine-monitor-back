@@ -16,7 +16,9 @@ defmodule MachineMonitorWeb.MachineAuthController do
     with {:ok, %Machine{uuid: uuid} = machine} <- Accounts.Auth.authenticate_machine(name, plain_password) do
       {:ok, token, _} = Guardian.encode_and_sign(machine)
 
-#      broadcast_updated_machines_event(uuid)
+      MachineProfile.update_machine_monitor(machine, %{status: 1})
+
+      broadcast_updated_machines_event(uuid)
 
       render(conn, "login.json", token: token, uuid: uuid)
     end
@@ -26,7 +28,9 @@ defmodule MachineMonitorWeb.MachineAuthController do
     with {:ok, %Machine{uuid: uuid} = machine} <- Accounts.Auth.authenticate_machine(name, plain_password) do
       {:ok, token, _} = Guardian.encode_and_sign(machine)
 
-#      broadcast_updated_machines_event(uuid)
+      MachineProfile.update_machine_monitor(machine, %{status: 1})
+
+      broadcast_updated_machines_event(uuid)
 
       render(conn, "login.json", token: token, uuid: uuid)
     else
@@ -35,11 +39,11 @@ defmodule MachineMonitorWeb.MachineAuthController do
 
         applications =
           Settings.list_applications()
-          |> Enum.map(fn a -> %{name: a.name, display: a.display, path: a.path, status: 0} end)
+          |> Enum.map(fn a -> %{name: a.name, display: a.display, path: a.path, status: 2} end)
 
         services =
           Settings.list_services()
-          |> Enum.map(fn s -> %{name: s.name, display: s.display, path: s.path, status: 0} end)
+          |> Enum.map(fn s -> %{name: s.name, display: s.display, path: s.path, status: 2} end)
 
         {:ok, %{}} = MachineProfile.create_monitor(
           %{status: 1, machine_id: id, applications: applications, services: services}
@@ -47,16 +51,16 @@ defmodule MachineMonitorWeb.MachineAuthController do
 
         {:ok, token, _} = Guardian.encode_and_sign(machine)
 
-#        broadcast_updated_machines_event(uuid)
+        broadcast_updated_machines_event(uuid)
 
         render(conn, "login.json", token: token, uuid: uuid)
     end
   end
 
   def logout(conn, _) do
-    %Machine{uuid: uuid} = Guardian.Plug.current_resource(conn)
+    %Machine{uuid: uuid} = machine = Guardian.Plug.current_resource(conn)
     {:ok, _} = Guardian.Plug.current_token(conn) |> Guardian.revoke()
-
+    MachineProfile.update_machine_monitor(machine, %{status: 0})
     broadcast_updated_machines_event(uuid)
 
     render(conn, "logout.json")

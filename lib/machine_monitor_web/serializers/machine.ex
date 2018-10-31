@@ -2,7 +2,13 @@ defmodule MachineMonitorWeb.Serializers.Machine do
   use Remodel
   use Phoenix.HTML
 
-  attributes [:id, :name, :power, :network, :applications, :services, :uuid]
+  attributes [:id, :name, :power, :network, :applications, :services, :uuid, :location]
+
+  def location(%{locations: nil}), do: %{longitude: nil, latitude: nil, timestamp: nil}
+  def location(%{locations: []}), do: %{longitude: nil, latitude: nil, timestamp: nil}
+  def location(%{locations: [%{longitude: lon, latitude: lat, timestamp: time} | _]}) do
+    %{longitude: lon, latitude: lat, timestamp: time}
+  end
 
   def power(%{monitor: nil}), do: "OFF"
   def power(%{monitor: %{status: 1}}), do: "ON"

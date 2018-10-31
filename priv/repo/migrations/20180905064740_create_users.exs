@@ -5,6 +5,7 @@ defmodule MachineMonitor.Repo.Migrations.CreateUsers do
     create table(:users) do
       add :name, :string
       add :email, :string
+      add :root, :boolean
       add :password, :string
       add :uuid, :string
 

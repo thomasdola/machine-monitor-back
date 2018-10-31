@@ -5,9 +5,6 @@ defmodule MachineMonitorWeb.Serializers.User do
 
   def full_name(%{name: name}), do: name
 
-  def root(%{id: 1}), do: true
-  def root(record), do: false
-
   def role(_) do
     %{name: "", gates: [], entities: [], policies: []}
   end

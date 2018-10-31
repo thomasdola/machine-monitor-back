@@ -20,6 +20,14 @@ defmodule MachineMonitorWeb.MachineChannel do
     end
   end
 
+  def terminate(_reason, socket) do
+    %Machine{} = machine = Guardian.Phoenix.Socket.current_resource(socket)
+    MachineInformation.update_machine_monitor(machine, %{status: 0})
+    machines = Accounts.list_machines() |> MachineList.to_map()
+    broadcast(socket, "MACHINES_UPDATED", %{machines: machines})
+    :ok
+  end
+
   def handle_in("USER_ACTIVITY_CHANGED" = event, report, socket) do
     #    persist data in db
     MachineMonitor.Machine.create_log(report)
@@ -206,6 +214,11 @@ defmodule MachineMonitorWeb.MachineChannel do
     {:noreply, socket}
   end
 
+  def handle_in("RESTART" = event, data, socket) do
+    broadcast(socket, event, data)
+    {:noreply, socket}
+  end
+
   def handle_in("STOP_SERVICE" = event, data, socket) do
     broadcast(socket, event, data)
     {:noreply, socket}
@@ -230,14 +243,6 @@ defmodule MachineMonitorWeb.MachineChannel do
 
   def handle_info({:after_join, %Machine{} = machine}, socket) do
     MachineInformation.update_machine_monitor(machine, %{status: 1})
-    machines = Accounts.list_machines() |> MachineList.to_map()
-    broadcast(socket, "MACHINES_UPDATED", %{machines: machines})
-
-    {:noreply, socket}
-  end
-
-  def handle_info({:after_leave, %Machine{} = machine}, socket) do
-    MachineInformation.update_machine_monitor(machine, %{status: 0})
     machines = Accounts.list_machines() |> MachineList.to_map()
     broadcast(socket, "MACHINES_UPDATED", %{machines: machines})
 

@@ -8,6 +8,7 @@ defmodule MachineMonitor.Accounts.User do
   schema "users" do
     field :email, :string
     field :name, :string
+    field :root, :boolean, default: false
     field :password, :string
     field :uuid, :string
 
@@ -17,7 +18,7 @@ defmodule MachineMonitor.Accounts.User do
   @doc false
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:name, :email, :password, :uuid])
+    |> cast(attrs, [:name, :email, :password, :uuid, :root])
     |> put_uuid()
     |> validate_required([:name, :email, :password, :uuid])
     |> put_password_hash()

@@ -11,6 +11,9 @@ defmodule MachineMonitor.Accounts.Machine do
     field :uuid, :string
 
     has_one :monitor, MachineMonitor.Machine.Monitor
+    has_many :locations, MachineMonitor.Machine.Location
+
+    many_to_many :deployments, MachineMonitor.Settings.Deployment, join_through: "deployed_machines"
 
     timestamps()
   end

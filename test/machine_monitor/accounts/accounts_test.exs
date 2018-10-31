@@ -370,4 +370,66 @@ defmodule MachineMonitor.AccountsTest do
       assert %Ecto.Changeset{} = Accounts.change_action(action)
     end
   end
+
+  describe "policies" do
+    alias MachineMonitor.Accounts.Policy
+
+    @valid_attrs %{description: "some description", name: "some name"}
+    @update_attrs %{description: "some updated description", name: "some updated name"}
+    @invalid_attrs %{description: nil, name: nil}
+
+    def policy_fixture(attrs \\ %{}) do
+      {:ok, policy} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Accounts.create_policy()
+
+      policy
+    end
+
+    test "list_policies/0 returns all policies" do
+      policy = policy_fixture()
+      assert Accounts.list_policies() == [policy]
+    end
+
+    test "get_policy!/1 returns the policy with given id" do
+      policy = policy_fixture()
+      assert Accounts.get_policy!(policy.id) == policy
+    end
+
+    test "create_policy/1 with valid data creates a policy" do
+      assert {:ok, %Policy{} = policy} = Accounts.create_policy(@valid_attrs)
+      assert policy.description == "some description"
+      assert policy.name == "some name"
+    end
+
+    test "create_policy/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Accounts.create_policy(@invalid_attrs)
+    end
+
+    test "update_policy/2 with valid data updates the policy" do
+      policy = policy_fixture()
+      assert {:ok, policy} = Accounts.update_policy(policy, @update_attrs)
+      assert %Policy{} = policy
+      assert policy.description == "some updated description"
+      assert policy.name == "some updated name"
+    end
+
+    test "update_policy/2 with invalid data returns error changeset" do
+      policy = policy_fixture()
+      assert {:error, %Ecto.Changeset{}} = Accounts.update_policy(policy, @invalid_attrs)
+      assert policy == Accounts.get_policy!(policy.id)
+    end
+
+    test "delete_policy/1 deletes the policy" do
+      policy = policy_fixture()
+      assert {:ok, %Policy{}} = Accounts.delete_policy(policy)
+      assert_raise Ecto.NoResultsError, fn -> Accounts.get_policy!(policy.id) end
+    end
+
+    test "change_policy/1 returns a policy changeset" do
+      policy = policy_fixture()
+      assert %Ecto.Changeset{} = Accounts.change_policy(policy)
+    end
+  end
 end

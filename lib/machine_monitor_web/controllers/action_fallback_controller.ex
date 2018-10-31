@@ -1,7 +1,8 @@
 defmodule MachineMonitorWeb.ActionFallbackController do
   use Phoenix.Controller
 
-  def call(conn, {:error, %Ecto.Changeset{}}) do
+  def call(conn, {:error, %Ecto.Changeset{} = changeset}) do
+    IO.inspect {:error, changeset}
     conn
     |> put_status(:bad_request)
     |> render(MachineMonitorWeb.ErrorView, "400.json", %{})

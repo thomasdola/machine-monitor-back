@@ -6,6 +6,9 @@ defmodule MachineMonitor.Settings do
   import Ecto.Query, warn: false
   alias MachineMonitor.Repo
 
+  @sketches_folder "/store/sketches"
+  @priv_folder :code.priv_dir(:machine_monitor)
+
   alias MachineMonitor.Settings.Application
 
   @doc """
@@ -214,6 +217,21 @@ defmodule MachineMonitor.Settings do
   def list_centers do
     Repo.all(Center)
   end
+  def list_centers(:preload) do
+    query = from c in Center,
+        preload: [{:deployments, :printers}],
+        preload: [deployments: [machines: ^_machines_query()]]
+
+    Repo.all(query)
+  end
+
+  defp _locations_query() do
+    from l in MachineMonitor.Machine.Location, order_by: [asc: :inserted_at]
+  end
+  defp _machines_query() do
+    from m in MachineMonitor.Accounts.Machine,
+        preload: [:monitor, locations: ^_locations_query()]
+  end
 
   @doc """
   Gets a single center.
@@ -230,6 +248,14 @@ defmodule MachineMonitor.Settings do
 
   """
   def get_center!(id), do: Repo.get!(Center, id)
+  def get_center(id) do
+      query = from c in Center, 
+        where: c.id == ^id,
+        preload: [{:deployments, :printers}],
+        preload: [deployments: [machines: ^_machines_query()]]
+
+    Repo.one(query)
+  end
 
   @doc """
   Creates a center.
@@ -247,6 +273,29 @@ defmodule MachineMonitor.Settings do
     %Center{}
     |> Center.changeset(attrs)
     |> Repo.insert()
+  end
+
+  def create_centers_from_sheet(sheet) do
+    # [_ | [data]] = CSVLixir.read(sheet) |> Enum.to_list()
+
+    [{:ok, table_id}] = Xlsxir.multi_extract(sheet)
+    [_header | data ] = Xlsxir.get_list(table_id)
+
+    # IO.inspect {:sheet, data, List.to_tuple(data)}
+
+    centers = Enum.reject(data, fn [code|_] -> 
+        is_nil(code)
+    end) 
+    |> Enum.map(fn [code|[name |[coordinates |[address]]]] ->
+        [lat|[lon]] = String.split(coordinates, ",")
+        %{name: name, code: code, location: %{ghana_post_gps: address, longitude: lon, latitude: lat}}
+    end)
+
+    # IO.inspect {:centers_sheet, centers}
+
+    Enum.each(centers, &create_center/1)
+
+    :ok
   end
 
   @doc """
@@ -294,5 +343,328 @@ defmodule MachineMonitor.Settings do
   """
   def change_center(%Center{} = center) do
     Center.changeset(center, %{})
+  end
+
+  alias MachineMonitor.Settings.Deployment
+
+  @doc """
+  Returns the list of deployments.
+
+  ## Examples
+
+      iex> list_deployments()
+      [%Deployment{}, ...]
+
+  """
+  def list_deployments do
+    Repo.all(Deployment)
+  end
+
+  @doc """
+  Gets a single deployment.
+
+  Raises `Ecto.NoResultsError` if the Deployment does not exist.
+
+  ## Examples
+
+      iex> get_deployment!(123)
+      %Deployment{}
+
+      iex> get_deployment!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_deployment!(id), do: Repo.get!(Deployment, id)
+
+  @doc """
+  Creates a deployment.
+
+  ## Examples
+
+      iex> create_deployment(%{field: value})
+      {:ok, %Deployment{}}
+
+      iex> create_deployment(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_deployment(attrs \\ %{}) do
+    result = %Deployment{}
+    |> Deployment.changeset(attrs)
+    |> Repo.insert()
+
+    if Map.get(attrs, "deployment") do
+        case result do
+            {:ok, deployment} ->
+                printers = Enum.map(Map.get(attrs, "printers"), fn printer_id -> get_printer!(printer_id) end)
+                machines = Enum.map(Map.get(attrs, "machines"), fn machine_id -> MachineMonitor.Accounts.get_machine!(machine_id) end)
+    
+                deployment = Repo.preload(deployment, [:printers, :machines])
+                |> Ecto.Changeset.change()
+                |> Ecto.Changeset.put_assoc(:printers, printers)
+                |> Ecto.Changeset.put_assoc(:machines, machines)
+                |> Repo.update!()
+
+                {:ok, deployment}
+    
+            error -> error
+        end
+    else
+        result
+    end
+  end
+
+  @doc """
+  Updates a deployment.
+
+  ## Examples
+
+      iex> update_deployment(deployment, %{field: new_value})
+      {:ok, %Deployment{}}
+
+      iex> update_deployment(deployment, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_deployment(%Deployment{} = deployment, attrs) do
+    deployment
+    |> Deployment.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a Deployment.
+
+  ## Examples
+
+      iex> delete_deployment(deployment)
+      {:ok, %Deployment{}}
+
+      iex> delete_deployment(deployment)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_deployment(%Deployment{} = deployment) do
+    Repo.delete(deployment)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking deployment changes.
+
+  ## Examples
+
+      iex> change_deployment(deployment)
+      %Ecto.Changeset{source: %Deployment{}}
+
+  """
+  def change_deployment(%Deployment{} = deployment) do
+    Deployment.changeset(deployment, %{})
+  end
+
+  alias MachineMonitor.Settings.Network
+
+  @doc """
+  Returns the list of networks.
+
+  ## Examples
+
+      iex> list_networks()
+      [%Network{}, ...]
+
+  """
+  def list_networks do
+    Repo.all(Network)
+  end
+
+  @doc """
+  Gets a single network.
+
+  Raises `Ecto.NoResultsError` if the Network does not exist.
+
+  ## Examples
+
+      iex> get_network!(123)
+      %Network{}
+
+      iex> get_network!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_network!(id), do: Repo.get!(Network, id)
+
+  @doc """
+  Creates a network.
+
+  ## Examples
+
+      iex> create_network(%{field: value})
+      {:ok, %Network{}}
+
+      iex> create_network(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_network(attrs \\ %{}) do
+    %Network{}
+    |> Network.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a network.
+
+  ## Examples
+
+      iex> update_network(network, %{field: new_value})
+      {:ok, %Network{}}
+
+      iex> update_network(network, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_network(%Network{} = network, attrs) do
+    network
+    |> Network.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a Network.
+
+  ## Examples
+
+      iex> delete_network(network)
+      {:ok, %Network{}}
+
+      iex> delete_network(network)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_network(%Network{} = network) do
+    Repo.delete(network)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking network changes.
+
+  ## Examples
+
+      iex> change_network(network)
+      %Ecto.Changeset{source: %Network{}}
+
+  """
+  def change_network(%Network{} = network) do
+    Network.changeset(network, %{})
+  end
+
+  alias MachineMonitor.Settings.Printer
+
+  @doc """
+  Returns the list of printers.
+
+  ## Examples
+
+      iex> list_printers()
+      [%Printer{}, ...]
+
+  """
+  def list_printers do
+    Repo.all(Printer)
+  end
+
+  @doc """
+  Gets a single printer.
+
+  Raises `Ecto.NoResultsError` if the Printer does not exist.
+
+  ## Examples
+
+      iex> get_printer!(123)
+      %Printer{}
+
+      iex> get_printer!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_printer!(id), do: Repo.get!(Printer, id)
+
+  @doc """
+  Creates a printer.
+
+  ## Examples
+
+      iex> create_printer(%{field: value})
+      {:ok, %Printer{}}
+
+      iex> create_printer(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_printer(attrs \\ %{}) do
+    %Printer{}
+    |> Printer.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def create_printers(sheet) do
+    [{:ok, table_id}] = Xlsxir.multi_extract(sheet)
+    [_ | printers] = Xlsxir.get_list(table_id)
+  end
+
+  @doc """
+  Updates a printer.
+
+  ## Examples
+
+      iex> update_printer(printer, %{field: new_value})
+      {:ok, %Printer{}}
+
+      iex> update_printer(printer, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_printer(%Printer{} = printer, attrs) do
+    printer
+    |> Printer.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a Printer.
+
+  ## Examples
+
+      iex> delete_printer(printer)
+      {:ok, %Printer{}}
+
+      iex> delete_printer(printer)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_printer(%Printer{} = printer) do
+    Repo.delete(printer)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking printer changes.
+
+  ## Examples
+
+      iex> change_printer(printer)
+      %Ecto.Changeset{source: %Printer{}}
+
+  """
+  def change_printer(%Printer{} = printer) do
+    Printer.changeset(printer, %{})
+  end
+
+  def copy_images(path, folder) do
+    ext = Path.extname(path)
+    file_name = Nanoid.generate() <> ext
+    new_file_path = folder <> "/" <> file_name
+    new_path = Path.join("#{@priv_folder}", "#{new_file_path}")
+    IO.inspect {:copy_file, File.exists?(path), new_file_path, new_path}
+    File.cp!(path, new_path)
+    {:ok, new_file_path, new_path}
   end
 end

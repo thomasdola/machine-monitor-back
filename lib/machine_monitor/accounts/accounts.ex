@@ -122,11 +122,15 @@ defmodule MachineMonitor.Accounts do
   def list_machines(params \\ %{}) do
     query =
       from m in Machine,
-        preload: [:monitor]
+        preload: [:monitor, locations: ^locations_query()]
 
 
 
     Repo.all(query)
+  end
+
+  def locations_query() do
+    from l in MachineMonitor.Machine.Location, order_by: [asc: :inserted_at]
   end
 
   @doc """
@@ -147,7 +151,7 @@ defmodule MachineMonitor.Accounts do
   def get_machine(id) do
     query = from m in Machine,
                  where: m.id == ^id,
-                 preload: [:monitor]
+                 preload: [:monitor, locations: ^locations_query()]
 
      Repo.one(query)
   end
@@ -155,7 +159,7 @@ defmodule MachineMonitor.Accounts do
   def get_machine_by(column, value) do
     query = from m in Machine,
                  where: field(m, ^column) == ^value,
-                 preload: [:monitor]
+                 preload: [:monitor, locations: ^locations_query()]
 
     Repo.one(query)
   end
@@ -428,6 +432,10 @@ defmodule MachineMonitor.Accounts do
       [%Entity{}, ...]
 
   """
+  def list_entities(gate_id) do
+    query = from e in Entity, where: e.gate_id == ^gate_id
+    Repo.all(query)
+  end
   def list_entities do
     Repo.all(Entity)
   end
@@ -461,9 +469,21 @@ defmodule MachineMonitor.Accounts do
 
   """
   def create_entity(attrs \\ %{}) do
-    %Entity{}
+    result = %Entity{}
     |> Entity.changeset(attrs)
     |> Repo.insert()
+
+    case result do
+        {:ok, entity} ->
+            actions = Enum.map(Map.get(attrs, :actions), fn action_id -> get_action!(action_id) end)
+            entity = entity
+            |> Repo.preload(:actions)
+            |> Ecto.Changeset.change()
+            |> Ecto.Changeset.put_assoc(:actions, actions)
+            |> Repo.update!()
+            {:ok, entity}
+        error -> error
+    end
   end
 
   @doc """
@@ -543,6 +563,7 @@ defmodule MachineMonitor.Accounts do
 
   """
   def get_action!(id), do: Repo.get!(Action, id)
+  def get_action_by_name!(name), do: Repo.get_by!(Action, name: name)
 
   @doc """
   Creates a action.
@@ -607,5 +628,122 @@ defmodule MachineMonitor.Accounts do
   """
   def change_action(%Action{} = action) do
     Action.changeset(action, %{})
+  end
+
+  alias MachineMonitor.Accounts.Policy
+
+  @doc """
+  Returns the list of policies.
+
+  ## Examples
+
+      iex> list_policies()
+      [%Policy{}, ...]
+
+  """
+  def list_policies do
+    Repo.all(Policy)
+  end
+
+  @doc """
+  Gets a single policy.
+
+  Raises `Ecto.NoResultsError` if the Policy does not exist.
+
+  ## Examples
+
+      iex> get_policy!(123)
+      %Policy{}
+
+      iex> get_policy!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_policy!(id), do: Repo.get!(Policy, id)
+
+  @doc """
+  Creates a policy.
+
+  ## Examples
+
+      iex> create_policy(%{field: value})
+      {:ok, %Policy{}}
+
+      iex> create_policy(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_policy(attrs \\ %{}) do
+    result = %Policy{}
+    |> Policy.changeset(attrs)
+    |> Repo.insert()
+
+    case result do
+        {:ok, policy} ->
+            actions = if ids = Map.get(attrs, :actions) do
+                Enum.map(ids, fn id -> 
+                    %Action{} = action = get_action!(id) 
+                    action
+                end)
+            else
+                []
+            end 
+            policy = Repo.preload(policy, :actions)
+            |> Ecto.Changeset.change()
+            |> Ecto.Changeset.put_assoc(:actions, actions)
+            |> Repo.update!()
+
+            {:ok, policy}
+
+        error -> error
+            
+    end
+  end
+
+  @doc """
+  Updates a policy.
+
+  ## Examples
+
+      iex> update_policy(policy, %{field: new_value})
+      {:ok, %Policy{}}
+
+      iex> update_policy(policy, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_policy(%Policy{} = policy, attrs) do
+    policy
+    |> Policy.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a Policy.
+
+  ## Examples
+
+      iex> delete_policy(policy)
+      {:ok, %Policy{}}
+
+      iex> delete_policy(policy)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_policy(%Policy{} = policy) do
+    Repo.delete(policy)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking policy changes.
+
+  ## Examples
+
+      iex> change_policy(policy)
+      %Ecto.Changeset{source: %Policy{}}
+
+  """
+  def change_policy(%Policy{} = policy) do
+    Policy.changeset(policy, %{})
   end
 end

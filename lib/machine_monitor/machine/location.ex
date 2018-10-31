@@ -9,6 +9,8 @@ defmodule MachineMonitor.Machine.Location do
     field :timestamp, :integer
     field :machine_id, :id
 
+    field :out_of_zone, :boolean, default: false
+
     belongs_to :machine, MachineMonitor.Accounts.Machine, define_field: false
 
     timestamps()
@@ -17,7 +19,7 @@ defmodule MachineMonitor.Machine.Location do
   @doc false
   def changeset(location, attrs) do
     location
-    |> cast(attrs, [:timestamp, :longitude, :latitude, :machine_id])
+    |> cast(attrs, [:timestamp, :longitude, :latitude, :machine_id, :out_of_zone])
     |> validate_required([:timestamp, :longitude, :latitude, :machine_id])
   end
 end

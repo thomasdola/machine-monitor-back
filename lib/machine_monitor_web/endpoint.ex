@@ -9,7 +9,11 @@ defmodule MachineMonitorWeb.Endpoint do
   # when deploying your static files in production.
   plug Plug.Static,
     at: "/", from: :machine_monitor, gzip: false,
-    only: ~w(css fonts images js favicon.ico robots.txt)
+    only: ~w(css fonts images js static favicon.ico robots.txt service-worker.js)
+
+  plug Plug.Static,
+    at: "/store", from: {:machine_monitor, "priv/store"}, gzip: false,
+    only: ~w(sketches templates)
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.

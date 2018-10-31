@@ -6,7 +6,8 @@ defmodule MachineMonitor.Accounts.Action do
 
   schema "actions" do
     field :name, :string
-    field :entity_id, :id
+
+    many_to_many :entities, MachineMonitor.Accounts.Entity, join_through: "entity_actions"
 
     timestamps()
   end

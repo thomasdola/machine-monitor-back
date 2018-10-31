@@ -31,6 +31,12 @@ defmodule MachineMonitorWeb.UserChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("RESTART" = event, %{"machine" => name} = params, socket) do
+    %Accounts.Machine{uuid: uuid} = Accounts.get_machine_by(:name, name)
+    MachineMonitorWeb.Endpoint.broadcast("MACHINE:#{uuid}", event, params)
+    {:reply, :ok, socket}
+  end
+
   def handle_in("STOP_SERVICE" = event, %{"machine" => name} = params, socket) do
     %Accounts.Machine{uuid: uuid} = Accounts.get_machine_by(:name, name)
     MachineMonitorWeb.Endpoint.broadcast("MACHINE:#{uuid}", event, params)

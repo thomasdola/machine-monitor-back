@@ -8,6 +8,8 @@ defmodule MachineMonitor.Accounts.Entity do
     field :name, :string
     field :gate_id, :id
 
+    many_to_many :actions, MachineMonitor.Accounts.Action, join_through: "entity_actions"
+
     timestamps()
   end
 

@@ -130,9 +130,28 @@ defmodule MachineMonitor.SettingsTest do
   describe "centers" do
     alias MachineMonitor.Settings.Center
 
-    @valid_attrs %{code: "some code", name: "some name"}
+    @center_location_sketch "some file path"
+
+    @center_contact %{
+      name: "some name",
+      phone: "some phone"
+    }
+    @center_recomendation %{
+      preferred_network: "pr net",
+      backup_network: "bc net",
+      recomended: true
+    }
+    @center_location %{
+      ghana_post_gps: "some gps",
+      longitude: 0.55555,
+      latitude: 0.5555,
+      sketch: @center_location_sketch
+    }
+
+    @valid_attrs %{code: "some code", name: "some name", location: @center_location, 
+      contact: @center_contact, recomendation: @center_recomendation}
     @update_attrs %{code: "some updated code", name: "some updated name"}
-    @invalid_attrs %{code: nil, name: nil}
+    @invalid_attrs %{code: nil, name: nil, status: nil}
 
     def center_fixture(attrs \\ %{}) do
       {:ok, center} =
@@ -186,6 +205,196 @@ defmodule MachineMonitor.SettingsTest do
     test "change_center/1 returns a center changeset" do
       center = center_fixture()
       assert %Ecto.Changeset{} = Settings.change_center(center)
+    end
+  end
+
+  describe "deployments" do
+    alias MachineMonitor.Settings.Deployment
+
+    @valid_attrs %{end_date: "2010-04-17 14:00:00.000000Z", start_date: "2010-04-17 14:00:00.000000Z", status: 42, center_id: nil}
+    @update_attrs %{end_date: "2011-05-18 15:01:01.000000Z", start_date: "2011-05-18 15:01:01.000000Z", status: 43}
+    @invalid_attrs %{end_date: nil, start_date: nil, status: nil, center_id: nil}
+
+    @valid_center_attrs %{code: "some code", name: "some name"}
+
+    def deployment_fixture(attrs \\ %{}) do
+      {:ok, %{id: center_id}} = Settings.create_center(@valid_center_attrs)
+      {:ok, deployment} =
+        attrs
+        |> Enum.into(%{@valid_attrs| center_id: center_id})
+        |> Settings.create_deployment()
+
+      deployment
+    end
+
+    test "list_deployments/0 returns all deployments" do
+      deployment = deployment_fixture()
+      assert Settings.list_deployments() == [deployment]
+    end
+
+    test "get_deployment!/1 returns the deployment with given id" do
+      deployment = deployment_fixture()
+      assert Settings.get_deployment!(deployment.id) == deployment
+    end
+
+    test "create_deployment/1 with valid data creates a deployment" do
+      {:ok, %{id: center_id}} = Settings.create_center(@valid_center_attrs)
+      assert {:ok, %Deployment{} = deployment} = Settings.create_deployment(%{@valid_attrs| center_id: center_id})
+      assert deployment.end_date == DateTime.from_naive!(~N[2010-04-17 14:00:00.000000Z], "Etc/UTC")
+      assert deployment.start_date == DateTime.from_naive!(~N[2010-04-17 14:00:00.000000Z], "Etc/UTC")
+      assert deployment.status == 42
+    end
+
+    test "create_deployment/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_deployment(@invalid_attrs)
+    end
+
+    test "update_deployment/2 with valid data updates the deployment" do
+      deployment = deployment_fixture()
+      assert {:ok, deployment} = Settings.update_deployment(deployment, @update_attrs)
+      assert %Deployment{} = deployment
+      assert deployment.end_date == DateTime.from_naive!(~N[2011-05-18 15:01:01.000000Z], "Etc/UTC")
+      assert deployment.start_date == DateTime.from_naive!(~N[2011-05-18 15:01:01.000000Z], "Etc/UTC")
+      assert deployment.status == 43
+    end
+
+    test "update_deployment/2 with invalid data returns error changeset" do
+      deployment = deployment_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_deployment(deployment, @invalid_attrs)
+      assert deployment == Settings.get_deployment!(deployment.id)
+    end
+
+    test "delete_deployment/1 deletes the deployment" do
+      deployment = deployment_fixture()
+      assert {:ok, %Deployment{}} = Settings.delete_deployment(deployment)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_deployment!(deployment.id) end
+    end
+
+    test "change_deployment/1 returns a deployment changeset" do
+      deployment = deployment_fixture()
+      assert %Ecto.Changeset{} = Settings.change_deployment(deployment)
+    end
+  end
+
+  describe "networks" do
+    alias MachineMonitor.Settings.Network
+
+    @valid_attrs %{operator: "some name", type: "some network type"}
+    @update_attrs %{operator: "some updated name"}
+    @invalid_attrs %{operator: nil, type: nil}
+
+    def network_fixture(attrs \\ %{}) do
+      {:ok, network} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_network()
+
+      network
+    end
+
+    test "list_networks/0 returns all networks" do
+      network = network_fixture()
+      assert Settings.list_networks() == [network]
+    end
+
+    test "get_network!/1 returns the network with given id" do
+      network = network_fixture()
+      assert Settings.get_network!(network.id) == network
+    end
+
+    test "create_network/1 with valid data creates a network" do
+      assert {:ok, %Network{} = network} = Settings.create_network(@valid_attrs)
+      assert network.operator == "some name"
+    end
+
+    test "create_network/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_network(@invalid_attrs)
+    end
+
+    test "update_network/2 with valid data updates the network" do
+      network = network_fixture()
+      assert {:ok, network} = Settings.update_network(network, @update_attrs)
+      assert %Network{} = network
+      assert network.operator == "some updated name"
+    end
+
+    test "update_network/2 with invalid data returns error changeset" do
+      network = network_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_network(network, @invalid_attrs)
+      assert network == Settings.get_network!(network.id)
+    end
+
+    test "delete_network/1 deletes the network" do
+      network = network_fixture()
+      assert {:ok, %Network{}} = Settings.delete_network(network)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_network!(network.id) end
+    end
+
+    test "change_network/1 returns a network changeset" do
+      network = network_fixture()
+      assert %Ecto.Changeset{} = Settings.change_network(network)
+    end
+  end
+
+  describe "printers" do
+    alias MachineMonitor.Settings.Printer
+
+    @valid_attrs %{laminator: "some laminator", serial: "some serial"}
+    @update_attrs %{laminator: "some updated laminator", serial: "some updated serial"}
+    @invalid_attrs %{laminator: nil, serial: nil}
+
+    def printer_fixture(attrs \\ %{}) do
+      {:ok, printer} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> Settings.create_printer()
+
+      printer
+    end
+
+    test "list_printers/0 returns all printers" do
+      printer = printer_fixture()
+      assert Settings.list_printers() == [printer]
+    end
+
+    test "get_printer!/1 returns the printer with given id" do
+      printer = printer_fixture()
+      assert Settings.get_printer!(printer.id) == printer
+    end
+
+    test "create_printer/1 with valid data creates a printer" do
+      assert {:ok, %Printer{} = printer} = Settings.create_printer(@valid_attrs)
+      assert printer.laminator == "some laminator"
+      assert printer.serial == "some serial"
+    end
+
+    test "create_printer/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Settings.create_printer(@invalid_attrs)
+    end
+
+    test "update_printer/2 with valid data updates the printer" do
+      printer = printer_fixture()
+      assert {:ok, printer} = Settings.update_printer(printer, @update_attrs)
+      assert %Printer{} = printer
+      assert printer.laminator == "some updated laminator"
+      assert printer.serial == "some updated serial"
+    end
+
+    test "update_printer/2 with invalid data returns error changeset" do
+      printer = printer_fixture()
+      assert {:error, %Ecto.Changeset{}} = Settings.update_printer(printer, @invalid_attrs)
+      assert printer == Settings.get_printer!(printer.id)
+    end
+
+    test "delete_printer/1 deletes the printer" do
+      printer = printer_fixture()
+      assert {:ok, %Printer{}} = Settings.delete_printer(printer)
+      assert_raise Ecto.NoResultsError, fn -> Settings.get_printer!(printer.id) end
+    end
+
+    test "change_printer/1 returns a printer changeset" do
+      printer = printer_fixture()
+      assert %Ecto.Changeset{} = Settings.change_printer(printer)
     end
   end
 end

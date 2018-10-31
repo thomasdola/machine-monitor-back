@@ -6,6 +6,7 @@ defmodule MachineMonitor.Repo.Migrations.CreateLocations do
       add :timestamp, :integer
       add :longitude, :float
       add :latitude, :float
+      add :out_of_zone, :boolean
       add :machine_id, references(:machines, on_delete: :nothing)
 
       timestamps()

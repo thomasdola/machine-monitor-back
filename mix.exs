@@ -49,7 +49,11 @@ defmodule MachineMonitor.Mixfile do
       {:guardian, "~> 1.0"},
       {:remodel, "~> 0.0.4"},
       {:cowboy, "~> 1.0"},
+      {:xlsxir, "~> 1.6"},
+      {:elixlsx, "~> 0.4.0"},
+      {:csvlixir, "~> 2.0.3"},
       {:ex_unit_notifier, "~> 0.1.4", only: :test},
+      {:distance, "~> 0.2.1"},
       password_hash_lib
     ]
   end

@@ -6,197 +6,8 @@ defmodule MachineMonitor.Machine do
   import Ecto.Query, warn: false
   alias MachineMonitor.Repo
 
-  alias MachineMonitor.Machine.Deployment
-
-  @doc """
-  Returns the list of deployments.
-
-  ## Examples
-
-      iex> list_deployments()
-      [%Deployment{}, ...]
-
-  """
-  def list_deployments do
-    Repo.all(Deployment)
-  end
-
-  @doc """
-  Gets a single deployment.
-
-  Raises `Ecto.NoResultsError` if the Deployment does not exist.
-
-  ## Examples
-
-      iex> get_deployment!(123)
-      %Deployment{}
-
-      iex> get_deployment!(456)
-      ** (Ecto.NoResultsError)
-
-  """
-  def get_deployment!(id), do: Repo.get!(Deployment, id)
-
-  @doc """
-  Creates a deployment.
-
-  ## Examples
-
-      iex> create_deployment(%{field: value})
-      {:ok, %Deployment{}}
-
-      iex> create_deployment(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def create_deployment(attrs \\ %{}) do
-    %Deployment{}
-    |> Deployment.changeset(attrs)
-    |> Repo.insert()
-  end
-
-  @doc """
-  Updates a deployment.
-
-  ## Examples
-
-      iex> update_deployment(deployment, %{field: new_value})
-      {:ok, %Deployment{}}
-
-      iex> update_deployment(deployment, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def update_deployment(%Deployment{} = deployment, attrs) do
-    deployment
-    |> Deployment.changeset(attrs)
-    |> Repo.update()
-  end
-
-  @doc """
-  Deletes a Deployment.
-
-  ## Examples
-
-      iex> delete_deployment(deployment)
-      {:ok, %Deployment{}}
-
-      iex> delete_deployment(deployment)
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def delete_deployment(%Deployment{} = deployment) do
-    Repo.delete(deployment)
-  end
-
-  @doc """
-  Returns an `%Ecto.Changeset{}` for tracking deployment changes.
-
-  ## Examples
-
-      iex> change_deployment(deployment)
-      %Ecto.Changeset{source: %Deployment{}}
-
-  """
-  def change_deployment(%Deployment{} = deployment) do
-    Deployment.changeset(deployment, %{})
-  end
-
-  alias MachineMonitor.Machine.Issue
-
-  @doc """
-  Returns the list of issues.
-
-  ## Examples
-
-      iex> list_issues()
-      [%Issue{}, ...]
-
-  """
-  def list_issues do
-    Repo.all(Issue)
-  end
-
-  @doc """
-  Gets a single issue.
-
-  Raises `Ecto.NoResultsError` if the Issue does not exist.
-
-  ## Examples
-
-      iex> get_issue!(123)
-      %Issue{}
-
-      iex> get_issue!(456)
-      ** (Ecto.NoResultsError)
-
-  """
-  def get_issue!(id), do: Repo.get!(Issue, id)
-
-  @doc """
-  Creates a issue.
-
-  ## Examples
-
-      iex> create_issue(%{field: value})
-      {:ok, %Issue{}}
-
-      iex> create_issue(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def create_issue(attrs \\ %{}) do
-    %Issue{}
-    |> Issue.changeset(attrs)
-    |> Repo.insert()
-  end
-
-  @doc """
-  Updates a issue.
-
-  ## Examples
-
-      iex> update_issue(issue, %{field: new_value})
-      {:ok, %Issue{}}
-
-      iex> update_issue(issue, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def update_issue(%Issue{} = issue, attrs) do
-    issue
-    |> Issue.changeset(attrs)
-    |> Repo.update()
-  end
-
-  @doc """
-  Deletes a Issue.
-
-  ## Examples
-
-      iex> delete_issue(issue)
-      {:ok, %Issue{}}
-
-      iex> delete_issue(issue)
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def delete_issue(%Issue{} = issue) do
-    Repo.delete(issue)
-  end
-
-  @doc """
-  Returns an `%Ecto.Changeset{}` for tracking issue changes.
-
-  ## Examples
-
-      iex> change_issue(issue)
-      %Ecto.Changeset{source: %Issue{}}
-
-  """
-  def change_issue(%Issue{} = issue) do
-    Issue.changeset(issue, %{})
-  end
+  @default_center_radius 100
+  @default_safe_zone [%{longitude: -0.1791814, latitude: 5.6260225}]
 
   alias MachineMonitor.Machine.Log
 
@@ -445,9 +256,60 @@ defmodule MachineMonitor.Machine do
 
   """
   def create_location(attrs \\ %{}) do
-    %Location{}
-    |> Location.changeset(attrs)
-    |> Repo.insert()
+    result = 
+        %Location{}
+        |> Location.changeset(attrs)
+        |> Repo.insert()
+
+    with {:ok, %Location{machine_id: machine_id} = location} <- result,
+    %MachineMonitor.Accounts.Machine{} = machine <- MachineMonitor.Accounts.get_machine!(machine_id) do
+
+        case Repo.one(_machine_preload_query(machine)) do
+            nil -> {:error, :machine_not_found}
+    
+            %MachineMonitor.Accounts.Machine{} = machine -> 
+                with true <- _out_of_deployment_zone?(machine, location),
+                    true <- _out_of_safe_zone?(location)
+                do
+                    {:ok, Repo.update(location, %{out_of_zone: true})}
+                else
+                    false -> {:ok, location}
+                end
+    
+            # error -> error
+        end
+        
+    else
+        error -> error
+    end
+
+  end
+
+  defp _machine_preload_query(%MachineMonitor.Accounts.Machine{id: id}) do
+      from m in MachineMonitor.Accounts.Machine,
+        where: m.id == ^id,
+        preload: [:locations],
+        preload: [{:deployments, :center}]
+  end
+
+  defp _get_machine_last_or_current_center(%MachineMonitor.Accounts.Machine{deployments: []}), do: nil
+  defp _get_machine_last_or_current_center(%MachineMonitor.Accounts.Machine{deployments: deployments}) do
+      [%{center: center}|_] = deployments
+      center
+  end
+
+  defp _out_of_safe_zone?(%{longitude: mac_long, latitude: mac_lat}) do
+    Enum.all?(@default_safe_zone, fn %{longitude: long, latitude: lat} ->  
+        Distance.GreatCircle.distance({long, lat}, {mac_long, mac_lat}) <= @default_center_radius
+    end)
+  end
+
+  defp _out_of_deployment_zone?(%MachineMonitor.Accounts.Machine{} = machine, %{longitude: mac_long, latitude: mac_lat}) do
+    case _get_machine_last_or_current_center(machine) do
+        nil -> true
+        %{location: %{longitude: long, latitude: lat}} -> 
+            Distance.GreatCircle.distance({long, lat}, {mac_long, mac_lat}) <= @default_center_radius
+    end
   end
 
   @doc """
