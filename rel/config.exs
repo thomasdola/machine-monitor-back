@@ -47,9 +47,7 @@ end
 release :machine_monitor do
   set version: current_version(:machine_monitor)
   set applications: [
-    :runtime_tools,
-    edeliver: :permanent,
-    distillery: :permanent
+    :runtime_tools
   ]
   set commands: [
     migrate: "rel/commands/migrate.sh",
