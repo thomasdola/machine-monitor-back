@@ -12,7 +12,8 @@ defmodule MachineMonitor.Repo do
   @spec truncate(Ecto.Schema.t()) :: :ok
   def truncate(schema) do
     table_name = schema.__schema__(:source)
-    query("TRUNCATE #{table_name}", [])
+    IO.inspect {:truncating, table_name}
+    query("TRUNCATE TABLE #{table_name} RESTART IDENTITY", [])
     :ok
   end
 end

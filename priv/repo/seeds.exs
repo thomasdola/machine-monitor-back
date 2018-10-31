@@ -25,42 +25,49 @@ Enum.each([%{operator: "MTN", type: "SIM/4G"}, %{operator: "Vodafone", type: "SI
 end)
 
 # seed centers
-Repo.truncate(Settings.Center)
-centers_sheet = Path.join([:code.priv_dir(:machine_monitor), "/store/seeds/centers_with_coordinates.xlsx"])
-Settings.create_centers_from_sheet(centers_sheet)
+# Repo.truncate(Settings.Center)
+# centers_sheet = Path.join([:code.priv_dir(:machine_monitor), "/store/seeds/centers_with_coordinates.xlsx"])
+# Settings.create_centers_from_sheet(centers_sheet)
 
 
-_seed_districts_for = fn 
-  %{name: "GREATER ACCRA", id: region_id} = region ->  
-    sheet = Path.join([:code.priv_dir(:machine_monitor), "/store/seeds/greater_accra_districts.xlsx"])
-    Location.create_districts_from_sheet(region_id, sheet)
-    region
-  region -> region
-end
+# _seed_districts_for = fn 
+#   %{name: "GREATER ACCRA", id: region_id} = region ->  
+#     sheet = Path.join([:code.priv_dir(:machine_monitor), "/store/seeds/greater_accra_districts.xlsx"])
+#     Location.create_districts_from_sheet(region_id, sheet)
+#     region
+#   region -> region
+# end
 
 # seed regions
-regions = [
-  %{name: "WESTERN", code: "code"},
-  %{name: "CENTRAL", code: "code"},
-  %{name: "GREATER ACCRA", code: "code"},
-  %{name: "VOLTA", code: "code"},
-  %{name: "EASTERN", code: "code"},
-  %{name: "ASHANTI", code: "code"},
-  %{name: "BRONG AHAFO", code: "code"},
-  %{name: "NORTHERN", code: "code"},
-  %{name: "UPPER EAST", code: "code"},
-  %{name: "UPPER WEST", code: "code"}
-]
-Repo.truncate(Location.Region)
-Repo.truncate(Location.District)
-Enum.each(regions, fn region ->  
-  {:ok, region} = Location.create_region(region)
-  _seed_districts_for.(region)
-end)
+# regions = [
+#   %{name: "WESTERN", code: "code"},
+#   %{name: "CENTRAL", code: "code"},
+#   %{name: "GREATER ACCRA", code: "code"},
+#   %{name: "VOLTA", code: "code"},
+#   %{name: "EASTERN", code: "code"},
+#   %{name: "ASHANTI", code: "code"},
+#   %{name: "BRONG AHAFO", code: "code"},
+#   %{name: "NORTHERN", code: "code"},
+#   %{name: "UPPER EAST", code: "code"},
+#   %{name: "UPPER WEST", code: "code"}
+# ]
+# Repo.truncate(Location.Region)
+# Repo.truncate(Location.District)
+# Enum.each(regions, fn region ->  
+#   {:ok, region} = Location.create_region(region)
+#   _seed_districts_for.(region)
+# end)
 
 # seed pages
-actions = ["add", "edit", "delete", "view", "download", "export", "deploy", "upload", "restart", "change password", "power off", 
-  "start", "stop"]
+Repo.truncate(Accounts.Action)
+Repo.truncate(Accounts.Gate)
+Repo.truncate(Accounts.Entity)
+Repo.truncate(Accounts.Role)
+Repo.truncate(Accounts.Policy)
+actions = ["add", "edit", "delete", "view", "download", "export", "deploy", "upload", 
+  "restart", "change password", "power off", "start", "stop"]
+Enum.each(actions, fn action -> Accounts.create_action(%{name: action}) end)
+
 pages = [
   %{
     gate: "dashboard", 
@@ -119,8 +126,6 @@ pages = [
   }, 
   %{gate: "reports", entities: []}
 ]
-
-Enum.each(actions, fn action -> Accounts.create_action(%{name: action}) end)
 
 Enum.each(pages, fn page ->  
   {:ok, %{id: gate_id}} = Accounts.create_gate(%{name: page.gate})
