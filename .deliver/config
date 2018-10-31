@@ -1,4 +1,4 @@
-APP="myproject"
+APP="machine_monitor"
 
 BUILD_HOST="ec2-52-15-45-222.us-east-2.compute.amazonaws.com"
 BUILD_USER="ubuntu"
