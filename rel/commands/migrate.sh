@@ -1,3 +1,3 @@
 #!/bin/sh
 
-release_ctl eval --mfa "MachineMonitor.Tasks.ReleaseTasks.migrate/0" --argv -- "$@"
+release_ctl eval --mfa "MachineMonitor.Tasks.ReleaseTasks.migrate/1" --argv -- "$@"
