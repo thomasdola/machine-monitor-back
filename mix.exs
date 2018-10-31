@@ -53,6 +53,8 @@ defmodule MachineMonitor.Mixfile do
       {:elixlsx, "~> 0.4.0"},
       {:csvlixir, "~> 2.0.3"},
       {:ex_unit_notifier, "~> 0.1.4", only: :test},
+      {:edeliver, "~> 1.4.3"},
+      {:distillery, "~> 1.4"},
       {:distance, "~> 0.2.1"},
       password_hash_lib
     ]

@@ -11,7 +11,7 @@ defmodule MachineMonitor.Tasks.ReleaseTasks do
 
   @repos Application.get_env(@app, :ecto_repos, [])
 
-  def migrate() do
+  def migrate(_argv) do
     start_services()
 
     run_migrations()
@@ -19,7 +19,7 @@ defmodule MachineMonitor.Tasks.ReleaseTasks do
     stop_services()
   end
 
-  def seed() do
+  def seed(_argv) do
     start_services()
 
     run_migrations()
