@@ -165,7 +165,7 @@ defmodule MachineMonitor.MachineTest do
     alias MachineMonitor.Machine.Location
 
     @valid_attrs %{latitude: 42.02, longitude: -42.02, timestamp: 475755232, machine_id: nil}
-    @update_attrs %{latitude: 43.02, longitude: -43.02, timestamp: 445253653}
+    @update_attrs %{out_of_zone: true}
     @invalid_attrs %{latitude: nil, longitude: nil, timestamp: nil, machine_id: nil}
 
     def location_fixture(attrs \\ %{}) do

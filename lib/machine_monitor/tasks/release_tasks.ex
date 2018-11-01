@@ -6,7 +6,9 @@ defmodule MachineMonitor.Tasks.ReleaseTasks do
     :crypto,
     :ssl,
     :postgrex,
-    :ecto
+    :ecto,
+    :xlsxir,
+    :erlsom
   ]
 
   @repos Application.get_env(@app, :ecto_repos, [])

@@ -9,7 +9,7 @@ defmodule MachineMonitorWeb.Endpoint do
   # when deploying your static files in production.
   plug Plug.Static,
     at: "/", from: :machine_monitor, gzip: false,
-    only: ~w(css fonts images js static favicon.ico robots.txt service-worker.js)
+    only: ~w(css fonts images js static favicon.ico robots.txt service-worker.js asset-manifest.json manifest.json)
 
   plug Plug.Static,
     at: "/store", from: {:machine_monitor, "priv/store"}, gzip: false,

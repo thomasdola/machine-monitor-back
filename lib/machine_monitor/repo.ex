@@ -13,7 +13,7 @@ defmodule MachineMonitor.Repo do
   def truncate(schema) do
     table_name = schema.__schema__(:source)
     IO.inspect {:truncating, table_name}
-    query("TRUNCATE TABLE #{table_name} RESTART IDENTITY", [])
+    query("TRUNCATE TABLE #{table_name} RESTART IDENTITY CASCADE", [])
     :ok
   end
 end

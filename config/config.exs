@@ -7,7 +7,8 @@ use Mix.Config
 
 # General application configuration
 config :machine_monitor,
-       ecto_repos: [MachineMonitor.Repo]
+       ecto_repos: [MachineMonitor.Repo],
+       env: Mix.env()
 
 # Configures the endpoint
 config :machine_monitor,

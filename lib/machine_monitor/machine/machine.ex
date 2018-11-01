@@ -6,7 +6,8 @@ defmodule MachineMonitor.Machine do
   import Ecto.Query, warn: false
   alias MachineMonitor.Repo
 
-  @default_center_radius 100
+  @default_center_radius 200
+  @default_safe_zone_radius 500
   @default_safe_zone [%{longitude: -0.1791814, latitude: 5.6260225}]
 
   alias MachineMonitor.Machine.Log
@@ -271,7 +272,7 @@ defmodule MachineMonitor.Machine do
                 with true <- _out_of_deployment_zone?(machine, location),
                     true <- _out_of_safe_zone?(location)
                 do
-                    {:ok, Repo.update(location, %{out_of_zone: true})}
+                    update_location(location, %{out_of_zone: true})
                 else
                     false -> {:ok, location}
                 end
@@ -288,8 +289,13 @@ defmodule MachineMonitor.Machine do
   defp _machine_preload_query(%MachineMonitor.Accounts.Machine{id: id}) do
       from m in MachineMonitor.Accounts.Machine,
         where: m.id == ^id,
-        preload: [:locations],
+        preload: [locations: ^_machine_locations_query()],
         preload: [{:deployments, :center}]
+  end
+
+  defp _machine_locations_query() do
+      from l in MachineMonitor.Machine.Location,
+        order_by: [desc: l.updated_at]
   end
 
   defp _get_machine_last_or_current_center(%MachineMonitor.Accounts.Machine{deployments: []}), do: nil
@@ -300,7 +306,7 @@ defmodule MachineMonitor.Machine do
 
   defp _out_of_safe_zone?(%{longitude: mac_long, latitude: mac_lat}) do
     Enum.all?(@default_safe_zone, fn %{longitude: long, latitude: lat} ->  
-        Distance.GreatCircle.distance({long, lat}, {mac_long, mac_lat}) <= @default_center_radius
+        not Geocalc.within?(@default_safe_zone_radius, [lat, long], [mac_lat, mac_long])
     end)
   end
 
@@ -308,7 +314,8 @@ defmodule MachineMonitor.Machine do
     case _get_machine_last_or_current_center(machine) do
         nil -> true
         %{location: %{longitude: long, latitude: lat}} -> 
-            Distance.GreatCircle.distance({long, lat}, {mac_long, mac_lat}) <= @default_center_radius
+            not Geocalc.within?(@default_center_radius, [lat, long], [mac_lat, mac_long])
+        _ -> true
     end
   end
 
