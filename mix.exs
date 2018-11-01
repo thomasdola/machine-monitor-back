@@ -4,7 +4,7 @@ defmodule MachineMonitor.Mixfile do
   def project do
     [
       app: :machine_monitor,
-      version: "0.0.3",
+      version: "0.0.1",
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
@@ -20,7 +20,7 @@ defmodule MachineMonitor.Mixfile do
   def application do
     [
       mod: {MachineMonitor.Application, []},
-      extra_applications: [:logger, :runtime_tools, :xlsxir, :erlsom]
+      extra_applications: [:logger, :runtime_tools, :xlsxir, :erlsom, :mix]
     ]
   end
 
