@@ -18,7 +18,8 @@ config :machine_monitor, MachineMonitorWeb.Endpoint,
   url: [host: "example.com", port: 80],
   cache_static_manifest: "priv/static/cache_manifest.json",
   server: true,
-  code_reloader: false
+  code_reloader: false,
+  check_origin: false
 
 # Do not print debug messages in production
 config :logger, level: :info
