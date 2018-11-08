@@ -7,6 +7,8 @@ defmodule MachineMonitor.Settings.Printer do
     field :laminator, :string
     field :serial, :string
 
+    many_to_many :deployments, MachineMonitor.Settings.Deployment, join_through: "deployed_printers"
+
     timestamps()
   end
 

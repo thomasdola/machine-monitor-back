@@ -1,5 +1,6 @@
 defmodule MachineMonitor.Repo do
   use Ecto.Repo, otp_app: :machine_monitor
+  use Scrivener, page_size: 20
 
   @doc """
   Dynamically loads the repository url from the

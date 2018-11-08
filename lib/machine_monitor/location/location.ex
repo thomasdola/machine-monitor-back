@@ -113,6 +113,17 @@ defmodule MachineMonitor.Location do
       [%District{}, ...]
 
   """
+  def list_district(params) do
+    query = from d in District
+
+    query = if filter = Map.get(params, "filter") do
+      [column|[value]] = String.split(filter, "|")
+      from d in query, where: field(d, ^String.to_existing_atom(column)) == ^value
+    else
+      query
+    end
+    Repo.all(query)
+  end
   def list_district do
     Repo.all(District)
   end

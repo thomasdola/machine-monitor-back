@@ -2,10 +2,13 @@ defmodule MachineMonitorWeb.Serializers.Center do
     use Remodel
   
     attributes [:id, :code, :name, :status, :ghana_post_gps, :longitude, :latitude, :sketch, :contact_name, 
-        :contact_phone, :recomended, :preferred_network, :backup_network, :deployments]
+        :contact_phone, :recomended, :preferred_network, :backup_network, :deployments, :region_id, :district_id]
 
-    # def status(%{status: 0}), do: "Inactive"
-    # def status(%{status: 1}), do: "Active"
+    def region_id(%{location: nil}), do: nil
+    def region_id(%{location: %{region_id: id}}), do: id
+
+    def district_id(%{location: nil}), do: nil
+    def district_id(%{location: %{district_id: id}}), do: id
 
     def ghana_post_gps(%{location: nil}), do: nil
     def ghana_post_gps(%{location: %{ghana_post_gps: gps}}), do: gps
@@ -32,8 +35,8 @@ defmodule MachineMonitorWeb.Serializers.Center do
     end
 
     def preferred_network(%{recomendation: nil}), do: nil
-    def preferred_network(%{recomendation: %{backup_network: backup_network}}) do
-        backup_network
+    def preferred_network(%{recomendation: %{preferred_network: preferred_network}}) do
+        preferred_network
     end
 
     def backup_network(%{recomendation: nil}), do: nil

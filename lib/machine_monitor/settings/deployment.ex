@@ -6,7 +6,7 @@ defmodule MachineMonitor.Settings.Deployment do
   schema "deployments" do
     field :end_date, :utc_datetime
     field :start_date, :utc_datetime
-    field :status, :integer
+    field :status, :integer, default: 1
 
     belongs_to :center , MachineMonitor.Settings.Center
 

@@ -5,13 +5,19 @@ defmodule MachineMonitorWeb.CenterController do
 
     alias MachineMonitor.Settings
     alias MachineMonitorWeb.Serializers.Center, as: CenterSerializer
+    alias MachineMonitorWeb.Serializers.Center.Map, as: MapCenterSerializer
 
     @sketches_folder "/store/sketches"
     @seeds_folder "/store/seeds"
 
-    def list(conn, _params) do
-        centers = center = CenterSerializer.to_map(Settings.list_centers(:preload))
-        render conn, "list.json", centers: centers, pagination: %{}
+    def list(conn, %{"map" => _} = params) do
+        %{centers: centers, pagination: pagination} = Settings.list_centers(params)
+        centers = MapCenterSerializer.to_map(centers) |> Enum.reject(fn c-> is_nil(c.longitude) || is_nil(c.latitude) end)
+        render conn, "map.json", centers: centers, pagination: pagination
+    end
+    def list(conn, params) do
+        %{centers: centers, pagination: pagination} = Settings.list_centers(params)
+        render conn, "list.json", centers: centers, pagination: pagination
     end
 
     def add(conn, %{"sheet" => %Plug.Upload{path: temp_path}}) do
@@ -36,15 +42,6 @@ defmodule MachineMonitorWeb.CenterController do
         end
     end
 
-    def update(conn, %{"id" => id, "sketch" => %Plug.Upload{path: temp_path}} = params) do
-        {:ok, sketch_new_path, _} = Settings.copy_images(temp_path, @sketches_folder)
-        params = %{params | "sketch" => sketch_new_path}
-        data = _prepare_data(params)
-        with %Settings.Center{} = center <- Settings.get_center!(id),
-            {:ok, _} <- Settings.update_center(center, data) do
-                render conn, "update.json", %{updated: true}
-        end
-    end
     def update(conn, %{"id" => id, "deployment" => _} = params) do
         data = _prepare_deployment_data(params)
         IO.inspect {:deployment, data}
@@ -55,6 +52,14 @@ defmodule MachineMonitorWeb.CenterController do
         end
     end
     def update(conn, %{"id" => id} = params) do
+        sketch = Map.get(params, "sketch")
+        params = case sketch do
+            %Plug.Upload{path: temp_path, filename: temp_filename} ->
+                {:ok, sketch_new_path, _} = Settings.copy_images(temp_path, @sketches_folder, temp_filename)
+                %{params | "sketch" => sketch_new_path}
+            _ -> params
+        end
+
         data = _prepare_data(params)
         with %Settings.Center{} = center <- Settings.get_center!(id),
             {:ok, _} <- Settings.update_center(center, data) do
@@ -83,12 +88,23 @@ defmodule MachineMonitorWeb.CenterController do
         }
     end
 
-    defp _extract_location(%{"ghana_post_gps" => gps, "longitude" => long, "latitude" => lat, "sketch" => sketch}) do
+    defp _extract_location(%{"sketch" => sketch} = params) do
         %{
-            ghana_post_gps: gps,
-            longitude: long,
-            latitude: lat,
+            ghana_post_gps: Map.get(params, "ghana_post_gps"),
+            longitude: Map.get(params, "longitude"),
+            latitude: Map.get(params, "latitude"),
+            region_id: Map.get(params, "region_id"),
+            district_id: Map.get(params, "district_id"),
             sketch: sketch
+        }
+    end
+    defp _extract_location(params) do
+        %{
+            ghana_post_gps: Map.get(params, "ghana_post_gps"),
+            longitude: Map.get(params, "longitude"),
+            latitude: Map.get(params, "latitude"),
+            region_id: Map.get(params, "region_id"),
+            district_id: Map.get(params, "district_id"),
         }
     end
 

@@ -12,8 +12,8 @@ defmodule MachineMonitorWeb.MachineAuthController do
 
   alias MachineMonitorWeb.Auth.Guardian
 
-  def login(conn, %{"name" => name, "password" => plain_password}) do
-    with {:ok, %Machine{uuid: uuid} = machine} <- Accounts.Auth.authenticate_machine(name, plain_password) do
+  def login(conn, %{"name" => name, "password" => plain_password, "manufacturing_id" => m_id}) do
+    with {:ok, %Machine{uuid: uuid} = machine} <- Accounts.Auth.authenticate_machine_with_manufacturing_id(name, m_id, plain_password) do
       {:ok, token, _} = Guardian.encode_and_sign(machine)
 
       MachineProfile.update_machine_monitor(machine, %{status: 1})
@@ -24,8 +24,13 @@ defmodule MachineMonitorWeb.MachineAuthController do
     end
   end
 
-  def register(conn, %{"name" => name, "password" => plain_password} = params) do
-    with {:ok, %Machine{uuid: uuid} = machine} <- Accounts.Auth.authenticate_machine(name, plain_password) do
+  def register(conn, %{"name" => name, "password" => plain_password, "manufacturing_id"  => m_id} = params) do
+    with {:ok, %Machine{uuid: uuid, name: machine_name} = machine} <- Accounts.Auth.authenticate_machine(m_id, plain_password) do
+
+      unless name == machine_name do
+        Accounts.update_machine(machine, %{name: name})
+      end
+
       {:ok, token, _} = Guardian.encode_and_sign(machine)
 
       MachineProfile.update_machine_monitor(machine, %{status: 1})

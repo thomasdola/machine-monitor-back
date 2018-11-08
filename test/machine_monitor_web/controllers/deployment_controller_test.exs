@@ -14,7 +14,7 @@ defmodule MachineMonitorWeb.DeploymentControllerTest do
     assert json_response(conn, 200)
   end
 
-  @machine_attrs %{name: "MRW 0021", password: "fjalkdjfakdjfl"}
+  @machine_attrs %{name: "MRW 0021", password: "fjalkdjfakdjfl", manucfacturing_id: "4564651546545"}
   defp machine_fixture() do
     {:ok, %Accounts.Machine{} = machine} = Accounts.create_machine(@machine_attrs)
     machine

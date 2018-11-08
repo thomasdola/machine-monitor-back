@@ -68,18 +68,29 @@ defmodule MachineMonitor.LocationTest do
   describe "district" do
     alias MachineMonitor.Location.District
 
-    @valid_attrs %{code: "some code", name: "some name"}
+    @valid_region_attrs %{code: "some region code", name: "some region name"}
+    @valid_attrs %{code: "some code", name: "some name", region_id: nil}
     @update_attrs %{code: "some updated code", name: "some updated name"}
-    @invalid_attrs %{code: nil, name: nil}
+    @invalid_attrs %{code: nil, name: nil, region_id: nil}
 
     def district_fixture(attrs \\ %{}) do
+      %{id: region_id} = region_fixture(@valid_region_attrs)
       {:ok, district} =
         attrs
-        |> Enum.into(@valid_attrs)
+        |> Enum.into(%{@valid_attrs | region_id: region_id})
         |> Location.create_district()
 
       district
     end
+
+    # def region_fixture(attrs \\ %{}) do
+    #   {:ok, region} =
+    #     attrs
+    #     |> Enum.into(@valid_region_attrs)
+    #     |> Location.create_region()
+
+    #   region
+    # end
 
     test "list_district/0 returns all district" do
       district = district_fixture()
@@ -92,7 +103,8 @@ defmodule MachineMonitor.LocationTest do
     end
 
     test "create_district/1 with valid data creates a district" do
-      assert {:ok, %District{} = district} = Location.create_district(@valid_attrs)
+      %{id: region_id} = region_fixture()
+      assert {:ok, %District{} = district} = Location.create_district(%{@valid_attrs | region_id: region_id})
       assert district.code == "some code"
       assert district.name == "some name"
     end

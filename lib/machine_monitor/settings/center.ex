@@ -40,12 +40,14 @@ defmodule MachineMonitor.Settings.Center.Location do
     field :latitude, :float
     field :sketch, :string
     field :radius, :integer
+    field :region_id, :integer
+    field :district_id, :integer
   end
 
   @doc false
   def changeset(location, attrs) do
     location
-    |> cast(attrs, [:ghana_post_gps, :longitude, :latitude, :sketch, :radius])
+    |> cast(attrs, [:ghana_post_gps, :longitude, :latitude, :sketch, :radius, :region_id, :district_id])
     # |> validate_required([:ghana_post_gps, :longitude, :latitude, :sketch, :radius])
   end
 end

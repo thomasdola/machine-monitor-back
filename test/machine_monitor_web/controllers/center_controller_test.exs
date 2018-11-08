@@ -13,7 +13,7 @@ defmodule MachineMonitorWeb.CenterControllerTest do
         ghana_post_gps: "some gps",
         longitude: 0.55555,
         latitude: 0.5555,
-        sketch: %Plug.Upload{path: @test_sketch_path},
+        sketch: %Plug.Upload{path: @test_sketch_path, filename: Path.basename(@test_sketch_path)},
 
         contact_name: "some name",
         contact_phone: "some phone",
@@ -55,6 +55,19 @@ defmodule MachineMonitorWeb.CenterControllerTest do
     test "GET / list all centers", %{conn: conn} do
         center_fixture()
         conn = get(conn, center_path(conn, :list))
+        assert json_response(conn, 200)
+    end
+
+    test "GET / list all centers for map", %{conn: conn} do
+        center_fixture()
+        conn = get(conn, center_path(conn, :list), %{map: true})
+        assert json_response(conn, 200)
+    end
+
+    test "GET / filter list centers", %{conn: conn} do
+        center_fixture()
+        params = %{filter: "region|3"}
+        conn = get(conn, center_path(conn, :list), params)
         assert json_response(conn, 200)
     end
 

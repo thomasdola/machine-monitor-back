@@ -122,15 +122,50 @@ defmodule MachineMonitor.Accounts do
   def list_machines(params \\ %{}) do
     query =
       from m in Machine,
-        preload: [:monitor, locations: ^locations_query()]
+        preload: [:monitor, :deployments, locations: ^locations_query()]
 
-
+    query = if filters = Map.get(params, "filter") do
+        filters = String.split(filters, ",")
+        IO.inspect {:filters, filters}
+        Enum.reduce(filters, query, fn filter, query ->  
+            [column | [value]] = String.split(filter, "|")
+            _perform_filter(query, column, value)
+        end)
+    else
+        query
+    end
 
     Repo.all(query)
   end
 
   def locations_query() do
     from l in MachineMonitor.Machine.Location, order_by: [asc: :inserted_at]
+  end
+
+  # fitler = "status|(0, 1),deployed|(0, 1)"
+  defp _perform_filter(query, "status", value) do
+    IO.inspect {:status, value}
+    from m in query,
+        join: mo in assoc(m, :monitor),
+        where: mo.status == ^value
+  end
+  defp _perform_filter(query, "deployed", "0") do
+    IO.inspect {:deployed, 0}
+    from m in query,
+        join: d in assoc(m, :deployments),
+        where: d.status == 0
+  end
+  defp _perform_filter(query, "deployed", "1") do
+    IO.inspect {:deployed, 1}
+    from m in query,
+        join: d in assoc(m, :deployments),
+        where: d.status == 1
+  end
+  defp _perform_filter(query, _column, _value), do: query
+
+  defp _machine_deployments_query(status) do
+    from d in MachineMonitor.Settings.Deployment,
+        where: d.status == ^status
   end
 
   @doc """
@@ -150,16 +185,16 @@ defmodule MachineMonitor.Accounts do
   def get_machine!(id), do: Repo.get!(Machine, id)
   def get_machine(id) do
     query = from m in Machine,
-                 where: m.id == ^id,
-                 preload: [:monitor, locations: ^locations_query()]
+        where: m.id == ^id,
+        preload: [:monitor, locations: ^locations_query()]
 
      Repo.one(query)
   end
 
   def get_machine_by(column, value) do
     query = from m in Machine,
-                 where: field(m, ^column) == ^value,
-                 preload: [:monitor, locations: ^locations_query()]
+        where: field(m, ^column) == ^value,
+        preload: [:monitor, locations: ^locations_query()]
 
     Repo.one(query)
   end

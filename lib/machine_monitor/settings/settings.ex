@@ -214,15 +214,77 @@ defmodule MachineMonitor.Settings do
       [%Center{}, ...]
 
   """
-  def list_centers do
-    Repo.all(Center)
-  end
   def list_centers(:preload) do
     query = from c in Center,
         preload: [{:deployments, :printers}],
         preload: [deployments: [machines: ^_machines_query()]]
 
     Repo.all(query)
+  end
+  def list_centers(params) do
+    query = from c in Center,
+        preload: [{:deployments, :printers}],
+        preload: [deployments: [machines: ^_machines_query()]]
+
+
+    query = if filters = Map.get(params, "filter") do
+        filters = String.split(filters, ",")
+        Enum.reduce(filters, query, fn filter, query ->  
+            [column | [value]] = String.split(filter, "|")
+            _perform_filter(query, column, value)
+        end)
+    else
+        query
+    end
+
+    # query = if sort = Map.get(params, "sort") do
+    #     _perform_sort(query, sort)
+    # else
+    #     query
+    # end
+
+    query = if search = Map.get(params, "q") do
+        _perform_search(query, search)
+    else
+        query
+    end
+
+    current_page = if cp = Map.get(params, "cp") do
+        case Integer.parse(cp) do
+            :error -> 1
+            {cp, _} -> cp
+            _ -> 1
+        end
+    else
+        1
+    end
+
+    page_size = if pp = Map.get(params, "pp") do
+        case Integer.parse(pp) do
+            :error -> 1
+            {pp, _} -> pp
+            _ -> 20
+        end
+    else
+        20
+    end
+
+    IO.inspect {:list_centers, query}
+
+    page = Repo.paginate(query, page: current_page, page_size: page_size)
+
+    %{
+      centers: page.entries,
+      pagination: %{
+        cp: page.page_number,
+        pp: page.page_size,
+        pages: page.total_pages,
+        total: page.total_entries
+      }
+    }
+  end
+  def list_centers do
+    Repo.all(Center)
   end
 
   defp _locations_query() do
@@ -231,6 +293,26 @@ defmodule MachineMonitor.Settings do
   defp _machines_query() do
     from m in MachineMonitor.Accounts.Machine,
         preload: [:monitor, locations: ^_locations_query()]
+  end
+
+  defp _perform_filter(query, "region", value) do
+    from c in query,
+        where: fragment("location::json->>'region_id' = ?", ^value)
+  end
+  defp _perform_filter(query, "district", value) do
+    from c in query,
+        where: fragment("location::json->>'district_id' = ?", ^value)
+  end
+  defp _perform_filter(query, column, value) do
+    from c in query,
+        where: field(c, ^String.to_existing_atom(column)) == ^value
+  end
+
+  defp _perform_search(query, search) do
+    search = "%#{search}%"
+    from c in query,
+        where: ilike(c.name, ^search),
+        or_where: ilike(c.code, ^search)
   end
 
   @doc """
@@ -249,7 +331,7 @@ defmodule MachineMonitor.Settings do
   """
   def get_center!(id), do: Repo.get!(Center, id)
   def get_center(id) do
-      query = from c in Center, 
+    query = from c in Center, 
         where: c.id == ^id,
         preload: [{:deployments, :printers}],
         preload: [deployments: [machines: ^_machines_query()]]
@@ -398,6 +480,8 @@ defmodule MachineMonitor.Settings do
             {:ok, deployment} ->
                 printers = Enum.map(Map.get(attrs, "printers"), fn printer_id -> get_printer!(printer_id) end)
                 machines = Enum.map(Map.get(attrs, "machines"), fn machine_id -> MachineMonitor.Accounts.get_machine!(machine_id) end)
+
+                # IO.inspect {:deployment, printers, machines}
     
                 deployment = Repo.preload(deployment, [:printers, :machines])
                 |> Ecto.Changeset.change()
@@ -568,9 +652,36 @@ defmodule MachineMonitor.Settings do
       [%Printer{}, ...]
 
   """
-  def list_printers do
-    Repo.all(Printer)
+  def list_printers(params \\ %{}) do
+    query = from p in Printer
+
+    query = if filters = Map.get(params, "filter") do
+        filters = String.split(filters, ",")
+        IO.inspect {:filters, filters}
+        Enum.reduce(filters, query, fn filter, query ->  
+            [column | [value]] = String.split(filter, "|")
+            _perform_printer_filter(query, column, value)
+        end)
+    else
+        query
+    end
+
+    Repo.all(query)
   end
+
+  defp _perform_printer_filter(query, "deployed", "0") do
+    IO.inspect {:deployed, 0}
+    from p in query,
+        join: d in assoc(p, :deployments),
+        where: d.status == 0
+  end
+  defp _perform_printer_filter(query, "deployed", "1") do
+    IO.inspect {:deployed, 1}
+    from p in query,
+        join: d in assoc(p, :deployments),
+        where: d.status == 1
+  end
+  defp _perform_printer_filter(query, _column, _value), do: query
 
   @doc """
   Gets a single printer.
@@ -660,6 +771,15 @@ defmodule MachineMonitor.Settings do
 
   def copy_images(path, folder) do
     ext = Path.extname(path)
+    file_name = Nanoid.generate() <> ext
+    new_file_path = folder <> "/" <> file_name
+    new_path = Path.join("#{@priv_folder}", "#{new_file_path}")
+    IO.inspect {:copy_file, File.exists?(path), new_file_path, new_path}
+    File.cp!(path, new_path)
+    {:ok, new_file_path, new_path}
+  end
+  def copy_images(path, folder, original_filename) do
+    ext = Path.extname(original_filename)
     file_name = Nanoid.generate() <> ext
     new_file_path = folder <> "/" <> file_name
     new_path = Path.join("#{@priv_folder}", "#{new_file_path}")

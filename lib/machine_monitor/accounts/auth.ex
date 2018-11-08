@@ -29,8 +29,26 @@ defmodule MachineMonitor.Accounts.Auth do
     end
   end
 
-  def authenticate_machine(name, plain_text_password) do
-    query = from m in Machine, where: m.name == ^name
+  def authenticate_machine(manufacturing_id, plain_text_password) do
+    query = from m in Machine, where: m.manufacturing_id == ^manufacturing_id
+    case Repo.one(query) do
+      nil ->
+        hasher.dummy_checkpw()
+        {:error, :invalid_credentials}
+      machine ->
+        if hasher.checkpw(plain_text_password, machine.password) do
+          {:ok, machine}
+        else
+          {:error, :invalid_credentials}
+        end
+    end
+  end
+
+  def authenticate_machine_with_manufacturing_id(name, manufacturing_id, plain_text_password) do
+    query = from m in Machine, 
+      where: m.name == ^name, 
+      where: m.manufacturing_id == ^manufacturing_id
+
     case Repo.one(query) do
       nil ->
         hasher.dummy_checkpw()

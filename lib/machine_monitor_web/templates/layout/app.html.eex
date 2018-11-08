@@ -9,7 +9,7 @@
 
     <title>AssetMan | Machine Monitor</title>
 
-    <link rel="stylesheet" href="<%= static_path(@conn, "/static/css/main.35a60950.css") %>">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/static/css/main.4f349aae.css") %>">
 
     <style>
 
@@ -168,6 +168,6 @@
 
   <body>
     <%= render @view_module, @view_template, assigns %>
-    <script src="<%= static_path(@conn, "/static/js/main.cb39be8e.js") %>"></script>
+    <script src="<%= static_path(@conn, "/static/js/main.bd31fde1.js") %>"></script>
   </body>
 </html>

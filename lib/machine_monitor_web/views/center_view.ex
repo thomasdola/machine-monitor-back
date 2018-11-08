@@ -2,7 +2,16 @@ defmodule MachineMonitorWeb.CenterView do
     use MachineMonitorWeb, :view 
 
     def render("list.json", %{centers: centers, pagination: pagination}) do
-        %{centers: centers, pagination: pagination}
+        %{
+            centers: Enum.map(centers, fn %{id: id, name: n, code: c, status: s}->  
+                %{name: n, code: c, status: s, id: id}
+            end), 
+            pagination: pagination
+        }
+    end
+
+    def render("map.json", %{centers: centers}) do
+        centers
     end
 
     def render("create.json", %{created: created}) do

@@ -6,6 +6,7 @@ defmodule MachineMonitor.Accounts.Machine do
   alias Comeonin.Pbkdf2
 
   schema "machines" do
+    field :manufacturing_id, :string
     field :name, :string
     field :password, :string
     field :uuid, :string
@@ -21,11 +22,12 @@ defmodule MachineMonitor.Accounts.Machine do
   @doc false
   def changeset(machine, attrs) do
     machine
-    |> cast(attrs, [:name, :password, :uuid])
+    |> cast(attrs, [:name, :password, :uuid, :manufacturing_id])
     |> put_uuid()
     |> validate_required([:name, :password, :uuid])
     |> put_password_hash()
     |> unique_constraint(:name)
+    |> unique_constraint(:manufacturing_id)
   end
 
   def hasher() do

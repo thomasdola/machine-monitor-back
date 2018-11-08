@@ -16,7 +16,7 @@ defmodule MachineMonitor.Accounts.Entity do
   @doc false
   def changeset(entity, attrs) do
     entity
-    |> cast(attrs, [:name])
-    |> validate_required([:name])
+    |> cast(attrs, [:name, :gate_id])
+    |> validate_required([:name, :gate_id])
   end
 end

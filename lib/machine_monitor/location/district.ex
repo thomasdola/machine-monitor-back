@@ -14,7 +14,7 @@ defmodule MachineMonitor.Location.District do
   @doc false
   def changeset(district, attrs) do
     district
-    |> cast(attrs, [:name, :code])
-    |> validate_required([:name, :code])
+    |> cast(attrs, [:name, :code, :region_id])
+    |> validate_required([:name, :code, :region_id])
   end
 end

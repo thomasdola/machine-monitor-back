@@ -69,10 +69,11 @@ defmodule MachineMonitor.AccountsTest do
 
   describe "machines" do
     alias MachineMonitor.Accounts.Machine
+    alias MachineMonitor.Settings
 
-    @valid_attrs %{name: "some name", password: "some password"}
+    @valid_attrs %{name: "some name", password: "some password", manucfacturing_id: "465469878789786545"}
     @update_attrs %{name: "some updated name", password: "some updated password"}
-    @invalid_attrs %{name: nil, password: nil}
+    @invalid_attrs %{name: nil, password: nil, manucfacturing_id: nil}
 
     def machine_fixture(attrs \\ %{}) do
       {:ok, machine} =
@@ -82,10 +83,64 @@ defmodule MachineMonitor.AccountsTest do
 
       machine
     end
+    def center_fixture() do
+      {:ok, center} = Settings.create_center(%{name: "center", code: "center code"})
+      center
+    end
+    def printer_fixture() do
+      {:ok, printer} = Settings.create_printer(%{serial: "serial", laminator: "laminator"})
+      printer
+    end
+    def deployment_fixture() do
+      {:ok, deployment} = Settings.create_deployment(%{
+        "start_date" => DateTime.utc_now(),
+        "end_date" => DateTime.utc_now(),
+        "center_id" => center_fixture().id,
+        "printers" => ["#{printer_fixture().id}"],
+        "machines" => ["#{machine_fixture().id}"],
+        "deployment" => true
+      })
+
+      # IO.inspect {:deployment, deployment}
+
+      deployment
+    end
 
     test "list_machines/0 returns all machines" do
       machine_fixture()
       assert Accounts.list_machines() |> Enum.count() == 1
+    end
+
+    test "list_machines/1 returns filtered machines | deployed" do
+      %{} = machine_fixture(%{name: "new machine"})
+      %{} = center_fixture()
+      %{} = printer_fixture()
+      %{} = deployment_fixture()
+
+      params = %{"filter" => "deployed|1"}
+      machines = Accounts.list_machines(params)
+      IO.inspect {:deployed_machines, machines}
+      assert length(machines) == 1
+
+      printers = MachineMonitor.Settings.list_printers(params)
+      IO.inspect {:deployed_printers, printers}
+      assert length(printers) == 1
+    end
+
+    test "list_machines/1 returns filtered machines | undeployed" do
+      %{} = machine_fixture(%{name: "new machine"})
+      %{} = center_fixture()
+      %{} = printer_fixture()
+      %{} = deployment_fixture()
+
+      params = %{"filter" => "deployed|0"}
+      machines = Accounts.list_machines(params)
+      IO.inspect {:undeployed_machines, machines}
+      assert length(machines) == 0
+
+      printers = MachineMonitor.Settings.list_printers(params)
+      IO.inspect {:undeployed_printers, printers}
+      assert length(printers) == 0
     end
 
     test "get_machine!/1 returns the machine with given id" do
@@ -254,14 +309,16 @@ defmodule MachineMonitor.AccountsTest do
   describe "entities" do
     alias MachineMonitor.Accounts.Entity
 
-    @valid_attrs %{name: "some name"}
+    @valid_attrs %{name: "some name", gate_id: nil, actions: []}
     @update_attrs %{name: "some updated name"}
-    @invalid_attrs %{name: nil}
+    @invalid_attrs %{name: nil, gate_id: nil, actions: []}
+    @valid_gate_attrs %{name: "some page"}
 
     def entity_fixture(attrs \\ %{}) do
+      %{id: gate_id} = gate_fixture(@valid_gate_attrs)
       {:ok, entity} =
         attrs
-        |> Enum.into(@valid_attrs)
+        |> Enum.into(%{@valid_attrs | gate_id: gate_id})
         |> Accounts.create_entity()
 
       entity
@@ -269,16 +326,17 @@ defmodule MachineMonitor.AccountsTest do
 
     test "list_entities/0 returns all entities" do
       entity = entity_fixture()
-      assert Accounts.list_entities() == [entity]
+      assert length(Accounts.list_entities()) == 1
     end
 
     test "get_entity!/1 returns the entity with given id" do
       entity = entity_fixture()
-      assert Accounts.get_entity!(entity.id) == entity
+      assert Accounts.get_entity!(entity.id).id == entity.id
     end
 
     test "create_entity/1 with valid data creates a entity" do
-      assert {:ok, %Entity{} = entity} = Accounts.create_entity(@valid_attrs)
+      %{id: gate_id} = gate_fixture(@valid_gate_attrs)
+      assert {:ok, %Entity{} = entity} = Accounts.create_entity(%{@valid_attrs | gate_id: gate_id})
       assert entity.name == "some name"
     end
 
@@ -296,7 +354,7 @@ defmodule MachineMonitor.AccountsTest do
     test "update_entity/2 with invalid data returns error changeset" do
       entity = entity_fixture()
       assert {:error, %Ecto.Changeset{}} = Accounts.update_entity(entity, @invalid_attrs)
-      assert entity == Accounts.get_entity!(entity.id)
+      assert entity.id == Accounts.get_entity!(entity.id).id
     end
 
     test "delete_entity/1 deletes the entity" do
@@ -389,12 +447,12 @@ defmodule MachineMonitor.AccountsTest do
 
     test "list_policies/0 returns all policies" do
       policy = policy_fixture()
-      assert Accounts.list_policies() == [policy]
+      assert length(Accounts.list_policies()) == 1
     end
 
     test "get_policy!/1 returns the policy with given id" do
       policy = policy_fixture()
-      assert Accounts.get_policy!(policy.id) == policy
+      assert Accounts.get_policy!(policy.id).id == policy.id
     end
 
     test "create_policy/1 with valid data creates a policy" do
@@ -418,7 +476,7 @@ defmodule MachineMonitor.AccountsTest do
     test "update_policy/2 with invalid data returns error changeset" do
       policy = policy_fixture()
       assert {:error, %Ecto.Changeset{}} = Accounts.update_policy(policy, @invalid_attrs)
-      assert policy == Accounts.get_policy!(policy.id)
+      assert policy.id == Accounts.get_policy!(policy.id).id
     end
 
     test "delete_policy/1 deletes the policy" do

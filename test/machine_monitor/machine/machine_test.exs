@@ -9,7 +9,7 @@ defmodule MachineMonitor.MachineTest do
     %{machine: machine_fixture(), center: center_fixture()}
   end
 
-  @machine_attrs %{name: "MRW 0021", password: "fjalkdjfakdjfl"}
+  @machine_attrs %{name: "MRW 0021", password: "fjalkdjfakdjfl", manucfacturing_id: "464878465487846"}
   defp machine_fixture() do
     {:ok, %Accounts.Machine{} = machine} = Accounts.create_machine(@machine_attrs)
     machine

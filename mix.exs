@@ -57,6 +57,7 @@ defmodule MachineMonitor.Mixfile do
       {:distillery, "~> 2.0"},
       {:distance, "~> 0.2.1"},
       {:geocalc, "~> 0.7.1"},
+      {:scrivener_ecto, "~> 1.0"},
       password_hash_lib
     ]
   end

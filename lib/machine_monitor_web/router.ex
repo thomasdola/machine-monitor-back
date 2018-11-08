@@ -48,6 +48,22 @@ defmodule MachineMonitorWeb.Router do
         end
       end
 
+      scope "/locations" do
+        scope "/regions" do
+          get "/", RegionController, :index
+          get "/:id", RegionController, :single
+          put "/:id", RegionController, :update
+          delete "/:id", RegionController, :delete
+        end
+  
+        scope "/districts" do
+          get "/", DistrictController, :list
+          get "/:id", DistrictController, :single
+          put "/:id", DistrictController, :update
+          delete "/:id", DistrictController, :delete
+        end
+      end
+
       scope "/roles" do
         get "/", RoleController, :list
         get "/:id", RoleController, :single
